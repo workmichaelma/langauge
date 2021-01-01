@@ -35,8 +35,6 @@ export default function SimpleBottomNavigation() {
   const classes = useStyles();
   const router = useRouter();
 
-  console.log({router})
-
   return (
     <BottomNavigation
       showLabels
