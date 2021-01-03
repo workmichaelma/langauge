@@ -7,6 +7,7 @@ import Typography from '@material-ui/core/Typography';
 
 import map from 'lodash/map'
 import isNull from 'lodash/isNull'
+import Link from 'next/link'
 
 const Accordion = withStyles({
   root: {
@@ -64,14 +65,14 @@ export default function CustomizedAccordions({ list }) {
             <Accordion square expanded={expanded === index} onChange={handleChange(index)} style={{border: 0}} key={index}>
               <AccordionSummary aria-controls="panel1d-content" id="panel1d-header">
                 <Typography>
-                  { item.title }
+                  {item.title}
                 </Typography>
               </AccordionSummary>
               <AccordionDetails>
                 <Typography>
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse malesuada lacus ex,
-                  sit amet blandit leo lobortis eget. Lorem ipsum dolor sit amet, consectetur adipiscing
-                  elit. Suspendisse malesuada lacus ex, sit amet blandit leo lobortis eget.
+                  <Link href={`/edit/${item.title}`}>
+                    edit
+                  </Link>
                 </Typography>
               </AccordionDetails>
             </Accordion>

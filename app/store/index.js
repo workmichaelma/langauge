@@ -1,129 +1,66 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import PropTypes from 'prop-types';
-import { makeStyles } from '@material-ui/core/styles';
-import AppBar from '@material-ui/core/AppBar';
-import Toolbar from '@material-ui/core/Toolbar';
-import Typography from '@material-ui/core/Typography';
-import CssBaseline from '@material-ui/core/CssBaseline';
-import useScrollTrigger from '@material-ui/core/useScrollTrigger';
-import Box from '@material-ui/core/Box';
-import Container from '@material-ui/core/Container';
-import Slide from '@material-ui/core/Slide';
-import delay from 'lodash/delay'
-import filter from 'lodash/filter'
-import get from 'lodash/get'
-import take from 'lodash/take'
-import isNull from 'lodash/isNull'
+import { useMemo } from 'react'
+import { createStore, applyMiddleware } from 'redux'
+import { composeWithDevTools } from 'redux-devtools-extension'
 
-import Search from 'components/common/Search'
-import theme from 'src/theme';
+let store
 
-import ItemList from 'components/ItemList'
-import useItems from 'hook/useItems';
-
-const useStyles = makeStyles((theme) => ({
-  toolbar: {
-    justifyContent: 'center',
-    padding: theme.spacing(2, 0),
-  }
-}));
-
-function HideOnScroll(props) {
-  const { children, window } = props;
-  // Note that you normally won't need to set the window ref as useScrollTrigger
-  // will default to window.
-  // This is only being set here because the demo is in an iframe.
-  const trigger = useScrollTrigger({ target: window ? window() : undefined });
-
-  return (
-    <Slide appear={false} direction="down" in={!trigger}>
-      {children}
-    </Slide>
-  );
+const initialState = {
+  items: [],
+  lastUpdate: 0,
+  light: false,
+  count: 0,
 }
 
-HideOnScroll.propTypes = {
-  children: PropTypes.element.isRequired,
-  /**
-   * Injected by the documentation to work in an iframe.
-   * You won't need it on your project.
-   */
-  window: PropTypes.func,
-};
-
-const fetchData = async (keyword) => {
-  return new Promise(resolve => {
-    delay(() => {
-      if (keyword) {
-        const list = filter(top100Films, ({ title }) => {
-          const keywordStr = get(keyword, 'title', keyword)
-          const reg = new RegExp(`(${keywordStr})+`, 'gi')
-          return reg.test(title)
-        })
-        resolve(list)
+const reducer = (state = initialState, action) => {
+  switch (action.type) {
+    case 'INIT':
+      return {
+        ...state,
+        items: [...state.items, ...action.items]
       }
-      resolve(top100Films)
-    }, 1000)
-  }).then(e => {
-    console.log('list',{e})
-    return e
-  })
+    default:
+      return state
+  }
 }
 
-export default function IndexPage(props) {
-  const { items } = useItems()
-  const [filtered, setFiltered] = useState(null)
-  const [keyword, setKeyword] = useState(null)
-
-  const list = useMemo(() => {
-    return isNull(filtered) ? items : filtered
-  }, [filtered, items])
-
-  const classes = useStyles();
-
-  useEffect(async () => {
-    if (keyword) {
-      const items = await fetchData(keyword)
-      setFiltered(items)
-    } else {
-      setFiltered(null)
-    }
-  }, [keyword])
-
-  return (
-    <React.Fragment>
-      <CssBaseline />
-      <HideOnScroll {...props}>
-        <AppBar color="default">
-          <Toolbar className={classes.toolbar}>
-            <Typography variant="h6">
-              <Search {...{list, setKeyword}} />
-            </Typography>
-          </Toolbar>
-        </AppBar>
-      </HideOnScroll>
-      <Toolbar />
-      <Container>
-        <Box my={2}>
-          <ItemList list={list} />
-        </Box>
-      </Container>
-    </React.Fragment>
-  );
+function initStore(preloadedState = initialState) {
+  return createStore(
+    reducer,
+    preloadedState,
+    composeWithDevTools(applyMiddleware())
+  )
 }
 
-IndexPage.getInitialProps = async ({ store }) => {
-  const { dispatch } = store
+export const initializeStore = (preloadedState) => {
+  let _store = store ?? initStore(preloadedState)
 
-  const items = take(top100Films, 20)
+  // After navigating to a page with an initial Redux state, merge that state
+  // with the current state in the store, and create a new store
+  if (preloadedState && store) {
+    _store = initStore({
+      ...store.getState(),
+      ...preloadedState,
+    })
+    // Reset the current store
+    store = undefined
+  }
 
-  dispatch({
-    type: 'INIT',
-    items
-  })
+  // For SSG and SSR always create a new store
+  if (typeof window === 'undefined') return _store
+  // Create the store once in the client
+  if (!store) store = _store
 
-  return {}
+  return _store
 }
+
+export function useStore(initialState) {
+  const store = useMemo(() => initializeStore(initialState), [initialState])
+  return store
+}
+
+
+
+
 
 // Top 100 films as rated by IMDb users. http://www.imdb.com/chart/top
 const top100Films = [
@@ -230,4 +167,5 @@ const top100Films = [
   { title: 'Snatch', year: 2000 },
   { title: '3 Idiots', year: 2009 },
   { title: 'Monty Python and the Holy Grail', year: 1975 },
+
 ];

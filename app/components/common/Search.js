@@ -18,6 +18,7 @@ const filter = createFilterOptions();
 
 export default function SearchBar({ list, setKeyword }) {
   const [value, setValue] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
 
   const router = useRouter()
 
